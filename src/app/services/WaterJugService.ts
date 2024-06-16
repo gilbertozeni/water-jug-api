@@ -12,26 +12,19 @@ class WaterJugService {
     private readonly cache = Cache.getCache();
     
     public async solve(x_capacity: number, y_capacity: number, z_amount_wanted: number): Promise<Step[]> {
-        // X should be smaller than Y, if not swap them
-        if(x_capacity > y_capacity) {
-            let t = x_capacity;
-            x_capacity = y_capacity;
-            y_capacity = t;
-        }
-
         if(!this.validateInput(x_capacity, y_capacity, z_amount_wanted)) {
             this.logger.error('The amount wanted is not possible to achieve.', { x_capacity, y_capacity, z_amount_wanted });
             return Promise.reject('The amount wanted is not possible to achieve');
         }
 
         // Create the two buckets
-        const x_bucket = new Bucket(x_capacity);
-        const y_bucket = new Bucket(y_capacity);
+        const x_bucket = new Bucket(x_capacity, "X");
+        const y_bucket = new Bucket(y_capacity, "Y");
 
         let steps_first = this.solveChallenge(x_bucket, y_bucket, z_amount_wanted);
-        let steps_second = this.solveChallenge(y_bucket, x_bucket, z_amount_wanted);
+        let steps_second = this.solveChallenge(y_bucket, x_bucket, z_amount_wanted, steps_first.length);
         
-        if(steps_first.length < steps_second.length) {
+        if(steps_second.length === 0) {
             this.logger.info('The first solution has less steps' );
             return Promise.resolve(steps_first);
         } else {
@@ -42,7 +35,12 @@ class WaterJugService {
 
     // Check if the amount wanted is possible to achieve
     private validateInput(x_capacity: number, y_capacity: number, z_amount_wanted: number): boolean {
-        if(z_amount_wanted > y_capacity) {
+        if(x_capacity < 0 || y_capacity < 0 || z_amount_wanted < 0) {
+            this.logger.info('All values must be positive', { x_capacity, y_capacity, z_amount_wanted });
+            return false;
+        }
+
+        if(z_amount_wanted > Math.max(x_capacity, y_capacity)) {
             this.logger.info('The amount wanted is greater than the capacity of the greatest bucket.', { x_capacity, y_capacity, z_amount_wanted });
             return false;
         }
@@ -57,7 +55,7 @@ class WaterJugService {
     }
 
 
-    private solveChallenge(from: Bucket, to: Bucket, amount_wanted: number): Step[] {
+    private solveChallenge(from: Bucket, to: Bucket, amount_wanted: number, max_steps?: number): Step[] {
         const cached = this.getFromCache(from.capacity, to.capacity, amount_wanted);
         if(cached) {
             return cached;
@@ -66,14 +64,14 @@ class WaterJugService {
         const steps = [];
 
         from.fill();
-        steps.push({ bucketX: from.currentVolume, bucketY: to.currentVolume, action: Actions.FILL });
+        steps.push({ bucketX: from.currentVolume, bucketY: to.currentVolume, action: `${Actions.FILL} ${from.name}` });
         
         while(from.currentVolume !== amount_wanted && to.currentVolume !== amount_wanted) {
             let temp = Math.min(from.currentVolume, to.capacity - to.currentVolume);
 
             to.receiveTransfer(temp);
             from.transfer(temp);
-            steps.push({ bucketX: from.currentVolume, bucketY: to.currentVolume, action: Actions.TRANSFER });
+            steps.push({ bucketX: from.currentVolume, bucketY: to.currentVolume, action: `${Actions.TRANSFER} ${from.name} to ${to.name}` });
 
             if(from.currentVolume === amount_wanted || to.currentVolume === amount_wanted) {
                 break;
@@ -81,12 +79,19 @@ class WaterJugService {
 
             if(from.isEmpty()) {
                 from.fill();
-                steps.push({ bucketX: from.currentVolume, bucketY: to.currentVolume, action: Actions.FILL });
+                steps.push({ bucketX: from.currentVolume, bucketY: to.currentVolume, action: `${Actions.FILL} ${from.name}` });
             }
             
             if(to.isFull()) {
                 to.empty();
-                steps.push({ bucketX: from.currentVolume, bucketY: to.currentVolume, action: Actions.EMPTY });
+                steps.push({ bucketX: from.currentVolume, bucketY: to.currentVolume, action: `${Actions.EMPTY} ${from.name}` });
+            }
+
+            if(typeof(max_steps) !== 'undefined') {
+                if(steps.length >= max_steps) {
+                    this.logger.info('The amount of steps is greater than the maximum allowed.', { max_steps });
+                    return [];
+                }
             }
         }
         this.saveToCache(from.capacity, to.capacity, amount_wanted, steps);

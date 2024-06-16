@@ -1,8 +1,10 @@
 export class Bucket {
+    name: string;
     capacity: number;
     currentVolume: number = 0;
 
-    constructor(capacity: number) {
+    constructor(capacity: number, name: string) {
+        this.name = name;
         this.capacity = capacity;   
     }
 

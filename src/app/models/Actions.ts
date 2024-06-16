@@ -1,5 +1,5 @@
 export enum Actions {
-    FILL = 'fill',
-    EMPTY = 'empty',
-    TRANSFER = 'transfer'
+    FILL = 'fill bucket',
+    EMPTY = 'empty bucket',
+    TRANSFER = 'transfer from bucket'
 }

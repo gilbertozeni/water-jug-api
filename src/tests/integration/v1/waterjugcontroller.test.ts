@@ -6,8 +6,7 @@ import e from 'express';
 describe('water jug endpoint', () => {
 
     let validPayload = { x_capacity: 2, y_capacity: 10, z_amount_wanted: 4 };
-    let invalidPayload = { x_capacity: 2, y_capacity: 10, z_amount_wanted: 3 };
-
+    let unsolvablePayload = { x_capacity: 2, y_capacity: 10, z_amount_wanted: 3 };
 
     it('should return 200 OK for valid values on the request', async () => {  
         const res = await request(app)
@@ -19,7 +18,7 @@ describe('water jug endpoint', () => {
       it('should return 422 UNPROCESSABLE ENTITY if there`s no possible solution', async () => {  
         const res = await request(app)
                                 .post('/api/v1/water-jug/solve')
-                                .send(invalidPayload);
+                                .send(unsolvablePayload);
         expect(res.status).toBe(422);
         expect(res.body.message).toBe('No solution');
       });
@@ -31,12 +30,19 @@ describe('water jug endpoint', () => {
         expect(res.status).toBe(400);
         expect(res.body.errors[0].msg).toBe('x_capacity is required');
       });
+      it('should return 400 BAD REQUEST if x_capacity is negative', async () => {  
+        const res = await request(app)
+                                .post('/api/v1/water-jug/solve')
+                                .send({ x_capacity: -1, y_capacity: 10, z_amount_wanted: 3 });
+        expect(res.status).toBe(400);
+        expect(res.body.errors[0].msg).toBe('x_capacity must be a positive integer');
+      });         
       it('should return 400 BAD REQUEST if x_capacity is not an integer', async () => {  
         const res = await request(app)
                                 .post('/api/v1/water-jug/solve')
                                 .send({ x_capacity: "two", y_capacity: 10, z_amount_wanted: 3 });
         expect(res.status).toBe(400);
-        expect(res.body.errors[0].msg).toBe('x_capacity must be an integer');
+        expect(res.body.errors[0].msg).toBe('x_capacity must be a positive integer');
       });      
 
       it('should return 400 BAD REQUEST if y_capacity is not set', async () => {  
@@ -46,12 +52,19 @@ describe('water jug endpoint', () => {
         expect(res.status).toBe(400);
         expect(res.body.errors[0].msg).toBe('y_capacity is required');
       });
+      it('should return 400 BAD REQUEST if y_capacity is negative', async () => {  
+        const res = await request(app)
+                                .post('/api/v1/water-jug/solve')
+                                .send({ y_capacity: -1, x_capacity: 10, z_amount_wanted: 3 });
+        expect(res.status).toBe(400);
+        expect(res.body.errors[0].msg).toBe('y_capacity must be a positive integer');
+      });  
       it('should return 400 BAD REQUEST if y_capacity is not an integer', async () => {  
         const res = await request(app)
                                 .post('/api/v1/water-jug/solve')
                                 .send({ y_capacity: "two", x_capacity: 10, z_amount_wanted: 3 });
         expect(res.status).toBe(400);
-        expect(res.body.errors[0].msg).toBe('y_capacity must be an integer');
+        expect(res.body.errors[0].msg).toBe('y_capacity must be a positive integer');
       });  
 
       it('should return 400 BAD REQUEST if z_amount_wanted is not set', async () => {  
@@ -61,12 +74,18 @@ describe('water jug endpoint', () => {
         expect(res.status).toBe(400);
         expect(res.body.errors[0].msg).toBe('z_amount_wanted is required');
       });
+      it('should return 400 BAD REQUEST if z_amount_wanted is negative', async () => {  
+        const res = await request(app)
+                                .post('/api/v1/water-jug/solve')
+                                .send({ y_capacity: 2 , x_capacity: 10, z_amount_wanted: -1});
+        expect(res.status).toBe(400);
+        expect(res.body.errors[0].msg).toBe('z_amount_wanted must be a positive integer');
+      });
       it('should return 400 BAD REQUEST if z_amount_wanted is not an integer', async () => {  
         const res = await request(app)
                                 .post('/api/v1/water-jug/solve')
                                 .send({ y_capacity: 2 , x_capacity: 10, z_amount_wanted: "three"});
         expect(res.status).toBe(400);
-        expect(res.body.errors[0].msg).toBe('z_amount_wanted must be an integer');
+        expect(res.body.errors[0].msg).toBe('z_amount_wanted must be a positive integer');
       });
-
 });
