@@ -17,12 +17,8 @@ class WaterJugService {
             return Promise.reject('The amount wanted is not possible to achieve');
         }
 
-        // Create the two buckets
-        const x_bucket = new Bucket(x_capacity, "X");
-        const y_bucket = new Bucket(y_capacity, "Y");
-
-        let steps_first = this.solveChallenge(x_bucket, y_bucket, z_amount_wanted);
-        let steps_second = this.solveChallenge(y_bucket, x_bucket, z_amount_wanted, steps_first.length);
+        let steps_first = this.solveChallenge(new Bucket(x_capacity, "X"), new Bucket(y_capacity, "Y"), z_amount_wanted);
+        let steps_second = this.solveChallenge(new Bucket(y_capacity, "Y"), new Bucket(x_capacity, "X"), z_amount_wanted, steps_first.length);
         
         if(steps_second.length === 0) {
             this.logger.info('The first solution has less steps' );
